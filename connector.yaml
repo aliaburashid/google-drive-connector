@@ -1,0 +1,47 @@
+id: google-drive
+name: Google Drive
+version: 0.1.0
+provider: Google Drive API v3
+difficulty: Advanced
+category: Productivity
+builder: Alia Burashed
+
+auth:
+  type: oauth2
+  flow: authorization_code
+  token_url: https://oauth2.googleapis.com/token
+  auth_url: https://accounts.google.com/o/oauth2/v2/auth
+  scopes:
+    - https://www.googleapis.com/auth/drive
+  credentials:
+    - client_id
+    - client_secret
+    - refresh_token
+
+capabilities:
+  testConnection: true
+  listActions: true
+  execute: true
+  pagination: true
+  rateLimitMetadata: true
+
+actions:
+  required:
+    - drive.search_files
+    - drive.list_folder
+    - drive.read_or_export_file
+    - drive.upload_file
+    - drive.share_file
+  implemented: []
+
+risks:
+  - Restricted OAuth scope https://www.googleapis.com/auth/drive is required for broad search/list without Google Picker; public apps need Google verification.
+  - drive.share_file can overshare (especially type=anyone); writes require explicit approval.
+  - drive.upload_file is not naturally idempotent; document client idempotency strategy.
+  - files.export is limited to ~10MB; large binary content needs an encoding strategy over MCP.
+  - Shared drives require supportsAllDrives / includeItemsFromAllDrives flags.
+
+access_blockers:
+  - OAuth consent screen in Testing mode only allows listed test users.
+  - Personal Gmail accounts cannot fully exercise shared-drive scenarios.
+  - Account or Workspace policies may block external sharing.
