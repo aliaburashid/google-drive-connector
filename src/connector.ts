@@ -1,5 +1,11 @@
+import { searchFiles } from "./actions/search-files.js";
 import { DriveClient } from "./client.js";
 import { normalizeError } from "./errors/normalize.js";
+import {
+  SEARCH_FILES_ACTION_ID,
+  searchFilesInputSchema,
+  searchFilesOutputSchema,
+} from "./schemas/search-files.js";
 import type {
   ConnectionTestResult,
   ConnectorAction,
@@ -11,6 +17,8 @@ import type {
   RequiredActionId,
 } from "./types.js";
 import { DRIVE_SCOPE, REQUIRED_ACTION_IDS } from "./types.js";
+
+const IMPLEMENTED_ACTIONS = [SEARCH_FILES_ACTION_ID] as const;
 
 const ACTION_CATALOG: Record<
   RequiredActionId,
@@ -47,12 +55,12 @@ const ACTION_CATALOG: Record<
 export const manifest: ConnectorManifest = {
   id: "google-drive",
   name: "Google Drive",
-  version: "0.1.0",
+  version: "0.2.0",
   provider: "Google Drive API v3",
   authType: "oauth2",
   scopes: [DRIVE_SCOPE],
   requiredActions: REQUIRED_ACTION_IDS,
-  implementedActions: [],
+  implementedActions: [...IMPLEMENTED_ACTIONS],
   risks: [
     "Restricted OAuth scope https://www.googleapis.com/auth/drive is required for broad search/list without Google Picker; public apps need Google verification.",
     "drive.share_file can overshare (especially type=anyone); writes require explicit approval.",
@@ -106,10 +114,11 @@ export async function testConnection(
 }
 
 export function listActions(): ConnectorAction[] {
+  const implemented = new Set<string>(IMPLEMENTED_ACTIONS);
   return REQUIRED_ACTION_IDS.map((id) => ({
     id,
     ...ACTION_CATALOG[id],
-    status: "planned",
+    status: implemented.has(id) ? "implemented" : "planned",
   }));
 }
 
@@ -130,12 +139,33 @@ export async function execute(
     };
   }
 
+  if (request.actionId === SEARCH_FILES_ACTION_ID) {
+    try {
+      const client = new DriveClient({ credentials: request.credentials });
+      const { data, requestId } = await searchFiles(client, request.input);
+      return {
+        ok: true,
+        actionId: request.actionId,
+        data,
+        ...(requestId !== undefined ? { requestId } : {}),
+      };
+    } catch (err) {
+      const error = normalizeError(err);
+      return {
+        ok: false,
+        actionId: request.actionId,
+        error,
+        ...(error.requestId !== undefined ? { requestId: error.requestId } : {}),
+      };
+    }
+  }
+
   return {
     ok: false,
     actionId: request.actionId,
     error: {
       code: "not_implemented",
-      message: `Action ${request.actionId} is planned but not implemented yet (Milestone 2 skeleton).`,
+      message: `Action ${request.actionId} is planned but not implemented yet.`,
       retryClass: "fatal",
     },
   };
@@ -150,9 +180,13 @@ export const googleDriveConnector: DooConnector = {
 
 export default googleDriveConnector;
 
-// Re-export auth helpers for local scripts without exposing secrets in logs.
 export { credentialsFromEnv, getAccessToken, refreshAccessToken } from "./auth/oauth.js";
 export { ConnectorError, normalizeError } from "./errors/normalize.js";
+export {
+  SEARCH_FILES_ACTION_ID,
+  searchFilesInputSchema,
+  searchFilesOutputSchema,
+} from "./schemas/search-files.js";
 export type {
   ConnectionTestResult,
   ConnectorAction,

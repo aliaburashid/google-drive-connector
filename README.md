@@ -2,8 +2,8 @@
 
 Builders League (Cohort 01) — portable Google Drive connector for Alia Burashed.
 
-**Status:** Milestone 2 — scaffold + OAuth + `testConnection` only.  
-Actions, MCP adapter, and OpenAPI are intentionally not implemented yet.
+**Status:** Milestone 3 — `testConnection` + `drive.search_files`.  
+Remaining actions, MCP adapter, and OpenAPI are not implemented yet.
 
 ## What works now
 
@@ -11,7 +11,7 @@ Actions, MCP adapter, and OpenAPI are intentionally not implemented yet.
 - `connector.yaml` manifest (provider, auth, scopes, risks)
 - OAuth refresh-token helper
 - `testConnection()` via Drive `about.get` (no side effects)
-- Stub `listActions()` / `execute()` (actions marked planned)
+- `drive.search_files` through `execute()` with pagination and normalized errors
 
 ## Setup
 
@@ -37,15 +37,20 @@ cp .env.example .env
 ```bash
 npm run typecheck
 npm run build
+npm test
 npm run test:connection
+npm run test:search
+npm run test:search -- --q="name contains 'report' and trashed = false" --pageSize=5
 ```
 
-`test:connection` prints a redacted success/failure result. It never logs client secrets or refresh tokens.
+Sandbox scripts print redacted results and never log client secrets or refresh tokens.
 
-## Required actions (next milestones)
+## Required actions
 
-1. `drive.search_files`
-2. `drive.list_folder`
-3. `drive.read_or_export_file`
-4. `drive.upload_file`
-5. `drive.share_file`
+| Action | Status |
+|---|---|
+| `drive.search_files` | Implemented |
+| `drive.list_folder` | Planned |
+| `drive.read_or_export_file` | Planned |
+| `drive.upload_file` | Planned |
+| `drive.share_file` | Planned |

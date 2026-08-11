@@ -1,0 +1,40 @@
+{
+  "description": "Sanitized Drive files.list success response for drive.search_files (no secrets).",
+  "request": {
+    "actionId": "drive.search_files",
+    "input": {
+      "q": "name contains 'Invoice' and trashed = false",
+      "pageSize": 2,
+      "orderBy": "modifiedTime desc"
+    }
+  },
+  "providerResponse": {
+    "kind": "drive#fileList",
+    "nextPageToken": "sanitized-next-page-token",
+    "incompleteSearch": false,
+    "files": [
+      {
+        "id": "file_sanitized_001",
+        "name": "Invoice April.pdf",
+        "mimeType": "application/pdf",
+        "parents": ["folder_sanitized_root"],
+        "modifiedTime": "2026-04-01T12:00:00.000Z",
+        "createdTime": "2026-03-28T09:00:00.000Z",
+        "size": "24576",
+        "webViewLink": "https://drive.google.com/file/d/file_sanitized_001/view",
+        "trashed": false
+      },
+      {
+        "id": "file_sanitized_002",
+        "name": "Invoice March.pdf",
+        "mimeType": "application/pdf",
+        "parents": ["folder_sanitized_root"],
+        "modifiedTime": "2026-03-01T12:00:00.000Z",
+        "createdTime": "2026-02-28T09:00:00.000Z",
+        "size": "18432",
+        "webViewLink": "https://drive.google.com/file/d/file_sanitized_002/view",
+        "trashed": false
+      }
+    ]
+  }
+}

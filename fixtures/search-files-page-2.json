@@ -1,0 +1,24 @@
+{
+  "description": "Sanitized second page for drive.search_files pagination.",
+  "request": {
+    "actionId": "drive.search_files",
+    "input": {
+      "q": "name contains 'Invoice' and trashed = false",
+      "pageSize": 2,
+      "pageToken": "sanitized-next-page-token"
+    }
+  },
+  "providerResponse": {
+    "kind": "drive#fileList",
+    "files": [
+      {
+        "id": "file_sanitized_003",
+        "name": "Invoice February.pdf",
+        "mimeType": "application/pdf",
+        "parents": ["folder_sanitized_root"],
+        "modifiedTime": "2026-02-01T12:00:00.000Z",
+        "trashed": false
+      }
+    ]
+  }
+}

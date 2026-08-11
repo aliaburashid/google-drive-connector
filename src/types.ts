@@ -1,6 +1,5 @@
 /**
  * Shared connector types for the Google Drive portable package.
- * Action payloads are stubbed until Milestone 3+.
  */
 
 export const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive" as const;

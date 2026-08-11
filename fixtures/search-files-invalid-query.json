@@ -1,0 +1,24 @@
+{
+  "description": "Sanitized Drive API error for an invalid query.",
+  "request": {
+    "actionId": "drive.search_files",
+    "input": {
+      "q": "name <<< invalid"
+    }
+  },
+  "providerHttpStatus": 400,
+  "providerResponse": {
+    "error": {
+      "code": 400,
+      "message": "Invalid Value",
+      "status": "INVALID_ARGUMENT",
+      "errors": [
+        {
+          "domain": "global",
+          "reason": "invalid",
+          "message": "Invalid Value"
+        }
+      ]
+    }
+  }
+}
