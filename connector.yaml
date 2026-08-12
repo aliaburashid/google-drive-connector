@@ -42,6 +42,8 @@ actions:
 risks:
   - Restricted OAuth scope https://www.googleapis.com/auth/drive is required for broad search/list without Google Picker; public apps need Google verification.
   - drive.share_file can overshare (especially type=anyone); writes require explicit approval plus allowPublicShare for public links.
+  - drive.share_file is not naturally idempotent; repeated permission creates may duplicate, update, or fail depending on Google ACL rules. idempotencyKey is client-side only.
+  - For user/group shares, omitting sendNotificationEmail lets Google default to sending a notification email; pass false to disable where permitted.
   - drive.upload_file is not naturally idempotent; retries may create duplicate files. Track idempotencyKey on the client.
   - files.export is limited to ~10MB; this connector returns base64 for binary and fails with content_too_large instead of silent truncation.
   - Shared drives require supportsAllDrives / includeItemsFromAllDrives flags.

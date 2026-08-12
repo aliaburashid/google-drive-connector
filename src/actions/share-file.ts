@@ -16,6 +16,7 @@ import {
   rejectUnknownKeys,
   requiredString,
 } from "../schemas/validate.js";
+import { optionalRateLimit } from "./rate-limit.js";
 
 const ALLOWED_KEYS = [
   "fileId",
@@ -190,6 +191,7 @@ export async function shareFile(
     ...(input.sendNotificationEmail !== undefined
       ? { notification: { sendNotificationEmail: input.sendNotificationEmail } }
       : {}),
+    ...optionalRateLimit(result.rateLimit),
   };
 
   return {

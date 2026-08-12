@@ -1,10 +1,17 @@
 /**
  * JSON Schema + types for drive.upload_file.
  *
- * Google Drive uploads are NOT naturally idempotent. Retrying the same upload
- * (network timeout, client retry, duplicate execute) can create multiple files
- * with the same name. Callers should supply an idempotencyKey for their own
- * dedupe tracking; the connector does not ask Google to coalesce uploads.
+ * Approval: consequential write. Requires execute approval (`approval.approved === true`)
+ * before any Google call.
+ *
+ * Idempotency: Google Drive uploads are NOT naturally idempotent. Retrying the same
+ * upload (network timeout, client retry, duplicate execute) can create multiple files
+ * with the same name. Callers may supply an execute-level idempotencyKey for their own
+ * external duplicate tracking; Google Drive does not deduplicate uploads using that key,
+ * and this connector does not guarantee idempotency.
+ *
+ * Retry: provider/transient failures are normalized with retryClass (e.g. retryable /
+ * rate_limited). Blind retries after an uncertain outcome may create duplicates.
  */
 
 export const UPLOAD_FILE_ACTION_ID = "drive.upload_file" as const;
@@ -51,6 +58,22 @@ export const uploadFileInputSchema = {
         "auto (default): multipart when content ≤ 5 MiB, otherwise resumable. multipart and resumable force a strategy.",
     },
   },
+  examples: [
+    {
+      name: "connector-upload-test.txt",
+      mimeType: "text/plain",
+      encoding: "utf-8",
+      content: "hello from connector\n",
+      uploadStrategy: "multipart",
+    },
+    {
+      name: "notes.pdf",
+      mimeType: "application/pdf",
+      encoding: "base64",
+      content: "JVBERi0xLjQ=",
+      parents: ["1abcExampleFolderId"],
+    },
+  ],
 } as const;
 
 export const uploadFileOutputSchema = {
@@ -89,7 +112,39 @@ export const uploadFileOutputSchema = {
         warning: { type: "string" },
       },
     },
+    rateLimit: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        limit: { type: "string" },
+        remaining: { type: "string" },
+        reset: { type: "string" },
+        retryAfter: { type: "string" },
+      },
+      description: "Rate-limit metadata when Google returns related headers.",
+    },
   },
+  examples: [
+    {
+      file: {
+        id: "file_sanitized_upload_001",
+        name: "connector-upload-test.txt",
+        mimeType: "text/plain",
+        parents: ["folder_sanitized_root"],
+        size: "21",
+        webViewLink: "https://drive.google.com/file/d/file_sanitized_upload_001/view",
+        createdTime: "2026-08-12T12:00:00.000Z",
+        modifiedTime: "2026-08-12T12:00:00.000Z",
+      },
+      uploadStrategy: "multipart",
+      sizeBytes: 21,
+      idempotency: {
+        naturallyIdempotent: false,
+        warning:
+          "Google Drive uploads are not naturally idempotent. Retrying this action may create another file with the same name. Track idempotencyKey on the client if you need deduplication.",
+      },
+    },
+  ],
 } as const;
 
 export type UploadContentEncoding = (typeof UPLOAD_CONTENT_ENCODINGS)[number];
@@ -121,6 +176,12 @@ export interface UploadFileOutput {
     key?: string;
     naturallyIdempotent: false;
     warning: string;
+  };
+  rateLimit?: {
+    limit?: string;
+    remaining?: string;
+    reset?: string;
+    retryAfter?: string;
   };
 }
 

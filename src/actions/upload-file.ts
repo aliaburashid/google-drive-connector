@@ -18,6 +18,7 @@ import {
   rejectUnknownKeys,
   requiredString,
 } from "../schemas/validate.js";
+import { optionalRateLimit } from "./rate-limit.js";
 
 const ALLOWED_KEYS = [
   "name",
@@ -185,6 +186,7 @@ export async function uploadFile(
       naturallyIdempotent: false,
       warning: UPLOAD_IDEMPOTENCY_WARNING,
     },
+    ...optionalRateLimit(result.rateLimit),
   };
 
   return {

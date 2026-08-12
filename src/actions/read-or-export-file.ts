@@ -1,4 +1,4 @@
-import type { DriveClient, DriveFileResource } from "../client.js";
+import type { DriveClient, DriveFileResource, DriveRateLimitMetadata } from "../client.js";
 import { ConnectorError } from "../errors/normalize.js";
 import {
   READ_OR_EXPORT_FILE_ACTION_ID,
@@ -23,6 +23,7 @@ import {
   resolveExport,
   type ExportFormatAlias,
 } from "./export-formats.js";
+import { optionalRateLimit } from "./rate-limit.js";
 
 const ALLOWED_KEYS = ["fileId", "format", "maxBytes"] as const;
 
@@ -137,6 +138,7 @@ export async function readOrExportFile(
   let contentMimeType: string;
   let exportFormat: string | undefined;
   let requestId = metadata.requestId;
+  let rateLimit: DriveRateLimitMetadata | undefined = metadata.rateLimit;
 
   if (delivery === "export") {
     const resolved = resolveExport(sourceMimeType, input.format as ExportFormatAlias | undefined);
@@ -145,6 +147,7 @@ export async function readOrExportFile(
     bytes = exported.bytes;
     contentMimeType = exported.mimeType ?? resolved.mimeType;
     requestId = exported.requestId ?? requestId;
+    rateLimit = exported.rateLimit ?? rateLimit;
   } else {
     const knownSize = file.size !== undefined ? Number(file.size) : Number.NaN;
     if (Number.isFinite(knownSize)) {
@@ -154,6 +157,7 @@ export async function readOrExportFile(
     bytes = downloaded.bytes;
     contentMimeType = downloaded.mimeType ?? sourceMimeType;
     requestId = downloaded.requestId ?? requestId;
+    rateLimit = downloaded.rateLimit ?? rateLimit;
   }
 
   assertWithinLimit(bytes.byteLength, maxBytes, false);
@@ -174,6 +178,7 @@ export async function readOrExportFile(
       maxBytes,
       googleExportLimitBytes: GOOGLE_EXPORT_LIMIT_BYTES,
     },
+    ...optionalRateLimit(rateLimit),
   };
 
   return {

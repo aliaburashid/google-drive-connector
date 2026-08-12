@@ -1,5 +1,6 @@
 import type { DriveFileListResponse, DriveRateLimitMetadata } from "../client.js";
 import type { DriveFileMetadata, SearchFilesOutput } from "../schemas/search-files.js";
+import { optionalRateLimit } from "./rate-limit.js";
 
 /** Shared files.list output shape used by search and folder listing. */
 export type FileListOutput = SearchFilesOutput;
@@ -22,8 +23,6 @@ export function mapFileListResult(
     ...(data.incompleteSearch !== undefined
       ? { incompleteSearch: data.incompleteSearch }
       : {}),
-    ...(rateLimit !== undefined && Object.keys(rateLimit).length > 0
-      ? { rateLimit }
-      : {}),
+    ...optionalRateLimit(rateLimit),
   };
 }

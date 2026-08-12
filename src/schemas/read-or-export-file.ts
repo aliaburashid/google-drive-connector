@@ -110,6 +110,17 @@ export const readOrExportFileOutputSchema = {
         googleExportLimitBytes: { type: "integer" },
       },
     },
+    rateLimit: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        limit: { type: "string" },
+        remaining: { type: "string" },
+        reset: { type: "string" },
+        retryAfter: { type: "string" },
+      },
+      description: "Rate-limit metadata when Google returns related headers.",
+    },
   },
   examples: [
     {
@@ -150,5 +161,11 @@ export interface ReadOrExportFileOutput {
   limit: {
     maxBytes: number;
     googleExportLimitBytes: number;
+  };
+  rateLimit?: {
+    limit?: string;
+    remaining?: string;
+    reset?: string;
+    retryAfter?: string;
   };
 }
