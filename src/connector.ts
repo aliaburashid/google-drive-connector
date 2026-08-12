@@ -1,4 +1,5 @@
 import { listFolder } from "./actions/list-folder.js";
+import { readOrExportFile } from "./actions/read-or-export-file.js";
 import { searchFiles } from "./actions/search-files.js";
 import { DriveClient } from "./client.js";
 import { normalizeError } from "./errors/normalize.js";
@@ -7,6 +8,11 @@ import {
   listFolderInputSchema,
   listFolderOutputSchema,
 } from "./schemas/list-folder.js";
+import {
+  READ_OR_EXPORT_FILE_ACTION_ID,
+  readOrExportFileInputSchema,
+  readOrExportFileOutputSchema,
+} from "./schemas/read-or-export-file.js";
 import {
   SEARCH_FILES_ACTION_ID,
   searchFilesInputSchema,
@@ -24,7 +30,11 @@ import type {
 } from "./types.js";
 import { DRIVE_SCOPE, REQUIRED_ACTION_IDS } from "./types.js";
 
-const IMPLEMENTED_ACTIONS = [SEARCH_FILES_ACTION_ID, LIST_FOLDER_ACTION_ID] as const;
+const IMPLEMENTED_ACTIONS = [
+  SEARCH_FILES_ACTION_ID,
+  LIST_FOLDER_ACTION_ID,
+  READ_OR_EXPORT_FILE_ACTION_ID,
+] as const;
 
 const ACTION_CATALOG: Record<
   RequiredActionId,
@@ -66,12 +76,13 @@ type ActionHandler = (
 const ACTION_HANDLERS: Partial<Record<RequiredActionId, ActionHandler>> = {
   [SEARCH_FILES_ACTION_ID]: searchFiles,
   [LIST_FOLDER_ACTION_ID]: listFolder,
+  [READ_OR_EXPORT_FILE_ACTION_ID]: readOrExportFile,
 };
 
 export const manifest: ConnectorManifest = {
   id: "google-drive",
   name: "Google Drive",
-  version: "0.3.0",
+  version: "0.4.0",
   provider: "Google Drive API v3",
   authType: "oauth2",
   scopes: [DRIVE_SCOPE],
@@ -204,6 +215,11 @@ export {
   listFolderInputSchema,
   listFolderOutputSchema,
 } from "./schemas/list-folder.js";
+export {
+  READ_OR_EXPORT_FILE_ACTION_ID,
+  readOrExportFileInputSchema,
+  readOrExportFileOutputSchema,
+} from "./schemas/read-or-export-file.js";
 export {
   SEARCH_FILES_ACTION_ID,
   searchFilesInputSchema,

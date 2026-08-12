@@ -1,0 +1,14 @@
+{
+  "description": "File metadata where capabilities.canDownload is false.",
+  "request": {
+    "actionId": "drive.read_or_export_file",
+    "input": { "fileId": "file_sanitized_restricted" }
+  },
+  "metadata": {
+    "id": "file_sanitized_restricted",
+    "name": "Restricted.pdf",
+    "mimeType": "application/pdf",
+    "size": "2048",
+    "capabilities": { "canDownload": false }
+  }
+}

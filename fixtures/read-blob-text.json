@@ -1,0 +1,15 @@
+{
+  "description": "Sanitized blob/text file download via files.get?alt=media.",
+  "request": {
+    "actionId": "drive.read_or_export_file",
+    "input": { "fileId": "file_sanitized_readme" }
+  },
+  "metadata": {
+    "id": "file_sanitized_readme",
+    "name": "README.txt",
+    "mimeType": "text/plain",
+    "size": "12",
+    "capabilities": { "canDownload": true }
+  },
+  "mediaText": "hello world\n"
+}

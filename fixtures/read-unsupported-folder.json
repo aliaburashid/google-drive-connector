@@ -1,0 +1,13 @@
+{
+  "description": "Attempting to read a Drive folder should fail as unsupported.",
+  "request": {
+    "actionId": "drive.read_or_export_file",
+    "input": { "fileId": "folder_sanitized_projects" }
+  },
+  "metadata": {
+    "id": "folder_sanitized_projects",
+    "name": "Projects",
+    "mimeType": "application/vnd.google-apps.folder",
+    "capabilities": { "canDownload": false }
+  }
+}

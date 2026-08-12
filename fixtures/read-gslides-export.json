@@ -1,0 +1,15 @@
+{
+  "description": "Sanitized Google Slides export to PDF via files.export (default format).",
+  "request": {
+    "actionId": "drive.read_or_export_file",
+    "input": { "fileId": "file_sanitized_gslides" }
+  },
+  "metadata": {
+    "id": "file_sanitized_gslides",
+    "name": "Pitch",
+    "mimeType": "application/vnd.google-apps.presentation",
+    "capabilities": { "canDownload": true }
+  },
+  "exportMimeType": "application/pdf",
+  "mediaBase64": "JVBERi0xLjU="
+}

@@ -94,10 +94,7 @@ describe("drive.list_folder via execute()", () => {
     const action = listActions().find((a) => a.id === "drive.list_folder");
     assert.ok(action);
     assert.equal(action.status, "implemented");
-    assert.deepEqual(manifest.implementedActions, [
-      "drive.search_files",
-      "drive.list_folder",
-    ]);
+    assert.ok(manifest.implementedActions.includes("drive.list_folder"));
   });
 
   it("lists direct children and returns nextPageToken", async () => {

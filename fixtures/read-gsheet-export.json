@@ -1,0 +1,15 @@
+{
+  "description": "Sanitized Google Sheet export to CSV via files.export.",
+  "request": {
+    "actionId": "drive.read_or_export_file",
+    "input": { "fileId": "file_sanitized_gsheet", "format": "csv" }
+  },
+  "metadata": {
+    "id": "file_sanitized_gsheet",
+    "name": "Budget",
+    "mimeType": "application/vnd.google-apps.spreadsheet",
+    "capabilities": { "canDownload": true }
+  },
+  "exportMimeType": "text/csv",
+  "mediaText": "item,amount\npaper,12\n"
+}

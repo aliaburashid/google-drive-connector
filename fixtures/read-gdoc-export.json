@@ -1,0 +1,15 @@
+{
+  "description": "Sanitized Google Doc export to PDF via files.export.",
+  "request": {
+    "actionId": "drive.read_or_export_file",
+    "input": { "fileId": "file_sanitized_gdoc", "format": "pdf" }
+  },
+  "metadata": {
+    "id": "file_sanitized_gdoc",
+    "name": "Notes",
+    "mimeType": "application/vnd.google-apps.document",
+    "capabilities": { "canDownload": true }
+  },
+  "exportMimeType": "application/pdf",
+  "mediaBase64": "JVBERi0xLjQ="
+}

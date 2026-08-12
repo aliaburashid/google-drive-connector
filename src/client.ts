@@ -63,6 +63,27 @@ export interface DriveFileListResponse {
   }>;
 }
 
+export interface DriveFileResource {
+  id?: string;
+  name?: string;
+  mimeType?: string;
+  size?: string;
+  md5Checksum?: string;
+  webViewLink?: string;
+  trashed?: boolean;
+  capabilities?: {
+    canDownload?: boolean;
+  };
+  exportLinks?: Record<string, string>;
+}
+
+export interface DriveBinaryResult {
+  bytes: Uint8Array;
+  mimeType?: string;
+  requestId?: string;
+  rateLimit?: DriveRateLimitMetadata;
+}
+
 function extractRateLimit(headers: Headers): DriveRateLimitMetadata | undefined {
   const limit =
     headers.get("x-ratelimit-limit") ?? headers.get("x-rate-limit-limit") ?? undefined;
@@ -134,10 +155,75 @@ export class DriveClient {
     });
   }
 
+  async getFile(
+    fileId: string,
+    fields: string,
+  ): Promise<{ data: DriveFileResource; requestId?: string; rateLimit?: DriveRateLimitMetadata }> {
+    return this.requestJson<DriveFileResource>(`/files/${encodeURIComponent(fileId)}`, {
+      method: "GET",
+      query: {
+        fields,
+        supportsAllDrives: "true",
+      },
+    });
+  }
+
+  async downloadFile(fileId: string): Promise<DriveBinaryResult> {
+    return this.requestBytes(`/files/${encodeURIComponent(fileId)}`, {
+      method: "GET",
+      query: {
+        alt: "media",
+        supportsAllDrives: "true",
+      },
+    });
+  }
+
+  async exportFile(fileId: string, mimeType: string): Promise<DriveBinaryResult> {
+    return this.requestBytes(`/files/${encodeURIComponent(fileId)}/export`, {
+      method: "GET",
+      query: {
+        mimeType,
+      },
+    });
+  }
+
   private async requestJson<T>(
     path: string,
     init: DriveRequestInit,
   ): Promise<{ data: T; requestId?: string; rateLimit?: DriveRateLimitMetadata }> {
+    const { response, requestId, rateLimit } = await this.request(path, init, {
+      Accept: "application/json",
+    });
+    const data = (await response.json()) as T;
+    return {
+      data,
+      ...(requestId !== undefined ? { requestId } : {}),
+      ...(rateLimit !== undefined ? { rateLimit } : {}),
+    };
+  }
+
+  private async requestBytes(
+    path: string,
+    init: DriveRequestInit,
+  ): Promise<DriveBinaryResult> {
+    const { response, requestId, rateLimit } = await this.request(path, init, {
+      Accept: "*/*",
+    });
+    const buffer = new Uint8Array(await response.arrayBuffer());
+    const mimeType = response.headers.get("content-type")?.split(";")[0]?.trim();
+    return {
+      bytes: buffer,
+      ...(mimeType !== undefined && mimeType !== "" ? { mimeType } : {}),
+      ...(requestId !== undefined ? { requestId } : {}),
+      ...(rateLimit !== undefined ? { rateLimit } : {}),
+    };
+  }
+
+  private async request(
+    path: string,
+    init: DriveRequestInit,
+    extraHeaders: Record<string, string>,
+  ): Promise<{ response: Response; requestId?: string; rateLimit?: DriveRateLimitMetadata }> {
     const accessToken = await getAccessToken(this.credentials, {
       fetchImpl: this.fetchImpl,
     });
@@ -157,7 +243,7 @@ export class DriveClient {
         method: init.method ?? "GET",
         headers: {
           Authorization: `Bearer ${accessToken}`,
-          Accept: "application/json",
+          ...extraHeaders,
           ...init.headers,
         },
         ...(init.body !== undefined ? { body: init.body } : {}),
@@ -193,9 +279,8 @@ export class DriveClient {
       throw error;
     }
 
-    const data = (await response.json()) as T;
     return {
-      data,
+      response,
       ...(requestId !== undefined ? { requestId } : {}),
       ...(rateLimit !== undefined ? { rateLimit } : {}),
     };

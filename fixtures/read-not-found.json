@@ -1,0 +1,22 @@
+{
+  "description": "Sanitized Drive API error when the file does not exist.",
+  "request": {
+    "actionId": "drive.read_or_export_file",
+    "input": { "fileId": "file_does_not_exist" }
+  },
+  "providerHttpStatus": 404,
+  "providerResponse": {
+    "error": {
+      "code": 404,
+      "message": "File not found: file_does_not_exist.",
+      "status": "NOT_FOUND",
+      "errors": [
+        {
+          "domain": "global",
+          "reason": "notFound",
+          "message": "File not found: file_does_not_exist."
+        }
+      ]
+    }
+  }
+}
