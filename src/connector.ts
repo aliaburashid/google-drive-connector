@@ -1,6 +1,9 @@
+import { shareFile } from "./actions/share-file.js";
 import { listFolder } from "./actions/list-folder.js";
 import { readOrExportFile } from "./actions/read-or-export-file.js";
 import { searchFiles } from "./actions/search-files.js";
+import { uploadFile } from "./actions/upload-file.js";
+import { assertWriteApproved } from "./auth/approval.js";
 import { DriveClient } from "./client.js";
 import { normalizeError } from "./errors/normalize.js";
 import {
@@ -18,6 +21,16 @@ import {
   searchFilesInputSchema,
   searchFilesOutputSchema,
 } from "./schemas/search-files.js";
+import {
+  SHARE_FILE_ACTION_ID,
+  shareFileInputSchema,
+  shareFileOutputSchema,
+} from "./schemas/share-file.js";
+import {
+  UPLOAD_FILE_ACTION_ID,
+  uploadFileInputSchema,
+  uploadFileOutputSchema,
+} from "./schemas/upload-file.js";
 import type {
   ConnectionTestResult,
   ConnectorAction,
@@ -34,6 +47,8 @@ const IMPLEMENTED_ACTIONS = [
   SEARCH_FILES_ACTION_ID,
   LIST_FOLDER_ACTION_ID,
   READ_OR_EXPORT_FILE_ACTION_ID,
+  UPLOAD_FILE_ACTION_ID,
+  SHARE_FILE_ACTION_ID,
 ] as const;
 
 const ACTION_CATALOG: Record<
@@ -71,18 +86,26 @@ const ACTION_CATALOG: Record<
 type ActionHandler = (
   client: DriveClient,
   input: Record<string, unknown>,
+  request: ConnectorExecuteRequest,
 ) => Promise<{ data: unknown; requestId?: string }>;
 
 const ACTION_HANDLERS: Partial<Record<RequiredActionId, ActionHandler>> = {
-  [SEARCH_FILES_ACTION_ID]: searchFiles,
-  [LIST_FOLDER_ACTION_ID]: listFolder,
-  [READ_OR_EXPORT_FILE_ACTION_ID]: readOrExportFile,
+  [SEARCH_FILES_ACTION_ID]: (client, input) => searchFiles(client, input),
+  [LIST_FOLDER_ACTION_ID]: (client, input) => listFolder(client, input),
+  [READ_OR_EXPORT_FILE_ACTION_ID]: (client, input) => readOrExportFile(client, input),
+  [UPLOAD_FILE_ACTION_ID]: (client, input, request) =>
+    uploadFile(client, input, {
+      ...(request.idempotencyKey !== undefined
+        ? { idempotencyKey: request.idempotencyKey }
+        : {}),
+    }),
+  [SHARE_FILE_ACTION_ID]: (client, input) => shareFile(client, input),
 };
 
 export const manifest: ConnectorManifest = {
   id: "google-drive",
   name: "Google Drive",
-  version: "0.4.0",
+  version: "0.5.0",
   provider: "Google Drive API v3",
   authType: "oauth2",
   scopes: [DRIVE_SCOPE],
@@ -90,9 +113,9 @@ export const manifest: ConnectorManifest = {
   implementedActions: [...IMPLEMENTED_ACTIONS],
   risks: [
     "Restricted OAuth scope https://www.googleapis.com/auth/drive is required for broad search/list without Google Picker; public apps need Google verification.",
-    "drive.share_file can overshare (especially type=anyone); writes require explicit approval.",
-    "drive.upload_file is not naturally idempotent; document client idempotency strategy.",
-    "files.export is limited to ~10MB; large binary content needs an encoding strategy over MCP.",
+    "drive.share_file can overshare (especially type=anyone); writes require explicit approval plus allowPublicShare for public links.",
+    "drive.upload_file is not naturally idempotent; retries may create duplicate files. Track idempotencyKey on the client.",
+    "files.export is limited to ~10MB; this connector returns base64 for binary and fails with content_too_large instead of silent truncation.",
     "Shared drives require supportsAllDrives / includeItemsFromAllDrives flags.",
   ],
   capabilities: {
@@ -166,7 +189,9 @@ export async function execute(
     };
   }
 
-  const handler = ACTION_HANDLERS[request.actionId as RequiredActionId];
+  const actionId = request.actionId as RequiredActionId;
+  const catalog = ACTION_CATALOG[actionId];
+  const handler = ACTION_HANDLERS[actionId];
   if (!handler) {
     return {
       ok: false,
@@ -179,9 +204,23 @@ export async function execute(
     };
   }
 
+  // Write gate: approval is checked BEFORE DriveClient is constructed or used.
+  if (catalog.approvalRequired) {
+    try {
+      assertWriteApproved(request.actionId, request.approval);
+    } catch (err) {
+      const error = normalizeError(err);
+      return {
+        ok: false,
+        actionId: request.actionId,
+        error,
+      };
+    }
+  }
+
   try {
     const client = new DriveClient({ credentials: request.credentials });
-    const { data, requestId } = await handler(client, request.input);
+    const { data, requestId } = await handler(client, request.input, request);
     return {
       ok: true,
       actionId: request.actionId,
@@ -225,6 +264,16 @@ export {
   searchFilesInputSchema,
   searchFilesOutputSchema,
 } from "./schemas/search-files.js";
+export {
+  SHARE_FILE_ACTION_ID,
+  shareFileInputSchema,
+  shareFileOutputSchema,
+} from "./schemas/share-file.js";
+export {
+  UPLOAD_FILE_ACTION_ID,
+  uploadFileInputSchema,
+  uploadFileOutputSchema,
+} from "./schemas/upload-file.js";
 export type {
   ConnectionTestResult,
   ConnectorAction,

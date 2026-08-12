@@ -1,0 +1,22 @@
+{
+  "description": "Sanitized upload into a parent folder.",
+  "request": {
+    "actionId": "drive.upload_file",
+    "approval": { "approved": true },
+    "input": {
+      "name": "in-folder.txt",
+      "mimeType": "text/plain",
+      "encoding": "utf-8",
+      "content": "nested\n",
+      "parents": ["folder_sanitized_projects"],
+      "uploadStrategy": "multipart"
+    }
+  },
+  "providerResponse": {
+    "id": "file_sanitized_upload_002",
+    "name": "in-folder.txt",
+    "mimeType": "text/plain",
+    "parents": ["folder_sanitized_projects"],
+    "size": "7"
+  }
+}

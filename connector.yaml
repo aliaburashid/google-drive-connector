@@ -1,6 +1,6 @@
 id: google-drive
 name: Google Drive
-version: 0.4.0
+version: 0.5.0
 provider: Google Drive API v3
 difficulty: Advanced
 category: Productivity
@@ -36,11 +36,13 @@ actions:
     - drive.search_files
     - drive.list_folder
     - drive.read_or_export_file
+    - drive.upload_file
+    - drive.share_file
 
 risks:
   - Restricted OAuth scope https://www.googleapis.com/auth/drive is required for broad search/list without Google Picker; public apps need Google verification.
-  - drive.share_file can overshare (especially type=anyone); writes require explicit approval.
-  - drive.upload_file is not naturally idempotent; document client idempotency strategy.
+  - drive.share_file can overshare (especially type=anyone); writes require explicit approval plus allowPublicShare for public links.
+  - drive.upload_file is not naturally idempotent; retries may create duplicate files. Track idempotencyKey on the client.
   - files.export is limited to ~10MB; this connector returns base64 for binary and fails with content_too_large instead of silent truncation.
   - Shared drives require supportsAllDrives / includeItemsFromAllDrives flags.
 

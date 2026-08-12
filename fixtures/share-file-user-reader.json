@@ -1,0 +1,20 @@
+{
+  "description": "Sanitized user reader share success.",
+  "request": {
+    "actionId": "drive.share_file",
+    "approval": { "approved": true, "note": "share sandbox file as reader" },
+    "input": {
+      "fileId": "file_sanitized_upload_001",
+      "type": "user",
+      "role": "reader",
+      "emailAddress": "sandbox.reader@example.com",
+      "sendNotificationEmail": false
+    }
+  },
+  "providerResponse": {
+    "id": "permission_sanitized_001",
+    "type": "user",
+    "role": "reader",
+    "emailAddress": "sandbox.reader@example.com"
+  }
+}

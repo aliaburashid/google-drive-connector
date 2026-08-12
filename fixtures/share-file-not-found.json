@@ -1,0 +1,28 @@
+{
+  "description": "Sanitized share provider failure.",
+  "request": {
+    "actionId": "drive.share_file",
+    "approval": { "approved": true },
+    "input": {
+      "fileId": "file_sanitized_upload_001",
+      "type": "user",
+      "role": "reader",
+      "emailAddress": "sandbox.reader@example.com"
+    }
+  },
+  "providerHttpStatus": 404,
+  "providerResponse": {
+    "error": {
+      "code": 404,
+      "message": "File not found.",
+      "status": "NOT_FOUND",
+      "errors": [
+        {
+          "domain": "global",
+          "reason": "notFound",
+          "message": "File not found."
+        }
+      ]
+    }
+  }
+}

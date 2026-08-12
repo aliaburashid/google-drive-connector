@@ -3,6 +3,7 @@ import { ConnectorError } from "./errors/normalize.js";
 import type { DriveAboutResponse, OAuthCredentials } from "./types.js";
 
 const DRIVE_API_BASE = "https://www.googleapis.com/drive/v3";
+const DRIVE_UPLOAD_BASE = "https://www.googleapis.com/upload/drive/v3";
 
 export interface DriveClientOptions {
   credentials: OAuthCredentials;
@@ -71,10 +72,40 @@ export interface DriveFileResource {
   md5Checksum?: string;
   webViewLink?: string;
   trashed?: boolean;
+  parents?: string[];
+  createdTime?: string;
+  modifiedTime?: string;
   capabilities?: {
     canDownload?: boolean;
   };
   exportLinks?: Record<string, string>;
+}
+
+export interface DriveUploadParams {
+  name: string;
+  mimeType: string;
+  bytes: Uint8Array;
+  parents?: string[];
+  fields?: string;
+}
+
+export interface DrivePermissionCreateParams {
+  fileId: string;
+  type: string;
+  role: string;
+  emailAddress?: string;
+  domain?: string;
+  sendNotificationEmail?: boolean;
+  fields?: string;
+}
+
+export interface DrivePermissionResource {
+  id?: string;
+  type?: string;
+  role?: string;
+  emailAddress?: string;
+  domain?: string;
+  allowFileDiscovery?: boolean;
 }
 
 export interface DriveBinaryResult {
@@ -185,6 +216,233 @@ export class DriveClient {
         mimeType,
       },
     });
+  }
+
+  async uploadMultipart(
+    params: DriveUploadParams,
+  ): Promise<{ data: DriveFileResource; requestId?: string; rateLimit?: DriveRateLimitMetadata }> {
+    const metadata: Record<string, unknown> = {
+      name: params.name,
+      mimeType: params.mimeType,
+    };
+    if (params.parents !== undefined && params.parents.length > 0) {
+      metadata.parents = params.parents;
+    }
+
+    const boundary = `connector_boundary_${Date.now()}`;
+    const metaPart =
+      `--${boundary}\r\n` +
+      `Content-Type: application/json; charset=UTF-8\r\n\r\n` +
+      `${JSON.stringify(metadata)}\r\n`;
+    const mediaHeader =
+      `--${boundary}\r\n` +
+      `Content-Type: ${params.mimeType}\r\n\r\n`;
+    const footer = `\r\n--${boundary}--`;
+
+    const metaBytes = new TextEncoder().encode(metaPart);
+    const headerBytes = new TextEncoder().encode(mediaHeader);
+    const footerBytes = new TextEncoder().encode(footer);
+    const body = new Uint8Array(
+      metaBytes.length + headerBytes.length + params.bytes.length + footerBytes.length,
+    );
+    body.set(metaBytes, 0);
+    body.set(headerBytes, metaBytes.length);
+    body.set(params.bytes, metaBytes.length + headerBytes.length);
+    body.set(footerBytes, metaBytes.length + headerBytes.length + params.bytes.length);
+
+    return this.requestJsonAbsolute(`${DRIVE_UPLOAD_BASE}/files`, {
+      method: "POST",
+      query: {
+        uploadType: "multipart",
+        supportsAllDrives: "true",
+        fields: params.fields ?? "id, name, mimeType",
+      },
+      headers: {
+        "Content-Type": `multipart/related; boundary=${boundary}`,
+      },
+      bodyBytes: body,
+    });
+  }
+
+  async uploadResumable(
+    params: DriveUploadParams,
+  ): Promise<{ data: DriveFileResource; requestId?: string; rateLimit?: DriveRateLimitMetadata }> {
+    const metadata: Record<string, unknown> = {
+      name: params.name,
+      mimeType: params.mimeType,
+    };
+    if (params.parents !== undefined && params.parents.length > 0) {
+      metadata.parents = params.parents;
+    }
+
+    const fields = params.fields ?? "id, name, mimeType";
+    const start = await this.requestAbsolute(`${DRIVE_UPLOAD_BASE}/files`, {
+      method: "POST",
+      query: {
+        uploadType: "resumable",
+        supportsAllDrives: "true",
+        fields,
+      },
+      headers: {
+        "Content-Type": "application/json; charset=UTF-8",
+        "X-Upload-Content-Type": params.mimeType,
+        "X-Upload-Content-Length": String(params.bytes.length),
+      },
+      body: JSON.stringify(metadata),
+      acceptStatus: [200],
+    });
+
+    const sessionUrl = start.response.headers.get("location");
+    if (!sessionUrl) {
+      throw new ConnectorError({
+        code: "upload_session_missing",
+        message: "Google Drive resumable upload did not return a Location header",
+        retryClass: "retryable",
+        ...(start.requestId !== undefined ? { requestId: start.requestId } : {}),
+      });
+    }
+
+    // Session URL already encodes the upload; do not rewrite its query string.
+    return this.requestJsonAbsolute(sessionUrl, {
+      method: "PUT",
+      headers: {
+        "Content-Type": params.mimeType,
+        "Content-Length": String(params.bytes.length),
+      },
+      bodyBytes: params.bytes,
+      absoluteUrlAlreadyIncludesQuery: true,
+    });
+  }
+
+  async createPermission(
+    params: DrivePermissionCreateParams,
+  ): Promise<{
+    data: DrivePermissionResource;
+    requestId?: string;
+    rateLimit?: DriveRateLimitMetadata;
+  }> {
+    const body: Record<string, unknown> = {
+      type: params.type,
+      role: params.role,
+    };
+    if (params.emailAddress !== undefined) body.emailAddress = params.emailAddress;
+    if (params.domain !== undefined) body.domain = params.domain;
+
+    return this.requestJson<DrivePermissionResource>(
+      `/files/${encodeURIComponent(params.fileId)}/permissions`,
+      {
+        method: "POST",
+        query: {
+          supportsAllDrives: "true",
+          fields: params.fields ?? "id, type, role",
+          ...(params.sendNotificationEmail !== undefined
+            ? { sendNotificationEmail: String(params.sendNotificationEmail) }
+            : {}),
+        },
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      },
+    );
+  }
+
+  private async requestJsonAbsolute(
+    absoluteUrl: string,
+    init: DriveRequestInit & {
+      bodyBytes?: Uint8Array;
+      absoluteUrlAlreadyIncludesQuery?: boolean;
+    },
+  ): Promise<{ data: DriveFileResource; requestId?: string; rateLimit?: DriveRateLimitMetadata }> {
+    const { response, requestId, rateLimit } = await this.requestAbsolute(absoluteUrl, {
+      ...init,
+      Accept: "application/json",
+    });
+    const data = (await response.json()) as DriveFileResource;
+    return {
+      data,
+      ...(requestId !== undefined ? { requestId } : {}),
+      ...(rateLimit !== undefined ? { rateLimit } : {}),
+    };
+  }
+
+  private async requestAbsolute(
+    absoluteUrl: string,
+    init: DriveRequestInit & {
+      bodyBytes?: Uint8Array;
+      Accept?: string;
+      acceptStatus?: number[];
+      absoluteUrlAlreadyIncludesQuery?: boolean;
+    },
+  ): Promise<{ response: Response; requestId?: string; rateLimit?: DriveRateLimitMetadata }> {
+    const accessToken = await getAccessToken(this.credentials, {
+      fetchImpl: this.fetchImpl,
+    });
+
+    const url = new URL(absoluteUrl);
+    if (init.query && init.absoluteUrlAlreadyIncludesQuery !== true) {
+      for (const [key, value] of Object.entries(init.query)) {
+        if (value !== undefined) {
+          url.searchParams.set(key, value);
+        }
+      }
+    }
+
+    let response: Response;
+    try {
+      response = await this.fetchImpl(url, {
+        method: init.method ?? "GET",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          ...(init.Accept !== undefined ? { Accept: init.Accept } : { Accept: "application/json" }),
+          ...init.headers,
+        },
+        ...(init.bodyBytes !== undefined
+          ? { body: init.bodyBytes }
+          : init.body !== undefined
+            ? { body: init.body }
+            : {}),
+      });
+    } catch (err) {
+      throw new ConnectorError({
+        code: "network_error",
+        message: err instanceof Error ? err.message : "Drive API request failed",
+        retryClass: "retryable",
+      });
+    }
+
+    const requestId =
+      response.headers.get("x-request-id") ??
+      response.headers.get("x-guploader-uploadid") ??
+      undefined;
+    const rateLimit = extractRateLimit(response.headers);
+    const okStatuses = init.acceptStatus ?? [200];
+    // Resumable session start often returns 200; completed upload returns 200.
+    // Also accept 201 Created for permission/create style responses via absolute helpers.
+    const allowed = new Set([...okStatuses, 201]);
+
+    if (!allowed.has(response.status)) {
+      let body: unknown;
+      try {
+        body = await response.json();
+      } catch {
+        body = undefined;
+      }
+
+      const error: DriveHttpError = {
+        httpStatus: response.status,
+        message: `Drive API upload/write failed with HTTP ${response.status}`,
+        body,
+        ...(requestId !== undefined ? { requestId } : {}),
+      };
+      throw error;
+    }
+
+    return {
+      response,
+      ...(requestId !== undefined ? { requestId } : {}),
+      ...(rateLimit !== undefined ? { rateLimit } : {}),
+    };
   }
 
   private async requestJson<T>(

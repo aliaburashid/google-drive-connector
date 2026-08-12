@@ -1,0 +1,28 @@
+{
+  "description": "Sanitized upload provider failure.",
+  "request": {
+    "actionId": "drive.upload_file",
+    "approval": { "approved": true },
+    "input": {
+      "name": "fail.txt",
+      "mimeType": "text/plain",
+      "encoding": "utf-8",
+      "content": "x"
+    }
+  },
+  "providerHttpStatus": 403,
+  "providerResponse": {
+    "error": {
+      "code": 403,
+      "message": "Insufficient permissions for the file",
+      "status": "PERMISSION_DENIED",
+      "errors": [
+        {
+          "domain": "global",
+          "reason": "insufficientFilePermissions",
+          "message": "Insufficient permissions for the file"
+        }
+      ]
+    }
+  }
+}

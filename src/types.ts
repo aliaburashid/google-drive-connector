@@ -91,9 +91,15 @@ export interface ConnectorExecuteRequest {
   actionId: string;
   input: Record<string, unknown>;
   credentials: OAuthCredentials;
-  /** Client-supplied key for write idempotency (future use). */
+  /**
+   * Caller-supplied correlation/idempotency key for external duplicate tracking;
+   * Google Drive does not deduplicate uploads using this key.
+   */
   idempotencyKey?: string;
-  /** Explicit approval token/flag for consequential writes (future use). */
+  /**
+   * Explicit approval for consequential writes.
+   * Enforced in connector.execute() before any Google write (`approved === true`).
+   */
   approval?: { approved: boolean; note?: string };
 }
 
