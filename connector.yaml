@@ -1,6 +1,6 @@
 id: google-drive
 name: Google Drive
-version: 0.5.0
+version: 0.6.0
 provider: Google Drive API v3
 difficulty: Advanced
 category: Productivity

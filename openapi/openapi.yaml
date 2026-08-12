@@ -1,0 +1,498 @@
+openapi: 3.1.0
+info:
+  title: Google Drive Connector
+  version: 0.6.0
+  summary: Portable Doo/Builders League Google Drive connector contract
+  description: |
+    Documents the EXISTING connector core contract. OpenAPI does not invent new
+    actions or provider behavior.
+
+    Architecture:
+      caller / MCP tool → connector.execute() → action → DriveClient → Google Drive API
+
+    Write actions (drive.upload_file, drive.share_file) require explicit approval
+    (`approval.approved === true`) before any Google write. Approval is enforced
+    by the connector core, not by MCP.
+
+    Known limitations (see connector.yaml risks/access_blockers):
+      - Restricted OAuth scope https://www.googleapis.com/auth/drive
+      - Uploads are not naturally idempotent (duplicate risk on retry)
+      - Share permission creates are not naturally idempotent
+      - Omitting sendNotificationEmail for user/group lets Google default to emailing
+      - files.export ~10MB limit; oversized content fails with content_too_large
+  contact:
+    name: Alia Burashed
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: '{connectorBaseUrl}'
+    description: Local or future hosted connector base URL (not deployed in Milestone 7)
+    variables:
+      connectorBaseUrl:
+        default: http://localhost:8787
+
+tags:
+  - name: Connector
+    description: Portable DooConnector surface
+  - name: Actions
+    description: Exact required Drive action IDs
+
+paths:
+  /health:
+    get:
+      tags: [Connector]
+      operationId: health
+      summary: Liveness probe for a future host (not deployed yet)
+      responses:
+        '200':
+          description: Service is up
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, version]
+                properties:
+                  ok: { type: boolean }
+                  version: { type: string }
+
+  /v1/test-connection:
+    post:
+      tags: [Connector]
+      operationId: testConnection
+      summary: Verify OAuth credentials via Drive about.get (no file side effects)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CredentialsRequest'
+      responses:
+        '200':
+          description: Connection test result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectionTestResult'
+
+  /v1/actions:
+    get:
+      tags: [Connector]
+      operationId: listActions
+      summary: List required actions and implementation status
+      responses:
+        '200':
+          description: Action catalog
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [actions]
+                properties:
+                  actions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ConnectorAction'
+
+  /v1/execute:
+    post:
+      tags: [Connector, Actions]
+      operationId: execute
+      summary: Execute one connector action by exact action ID
+      description: |
+        Single shared execution entrypoint used by callers and by the thin MCP adapter.
+        Write actions require approval metadata. Missing approval returns
+        approval_required without calling Google.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConnectorExecuteRequest'
+            examples:
+              search:
+                summary: Search files
+                value:
+                  actionId: drive.search_files
+                  credentials:
+                    clientId: "${GOOGLE_CLIENT_ID}"
+                    clientSecret: "${GOOGLE_CLIENT_SECRET}"
+                    refreshToken: "${GOOGLE_REFRESH_TOKEN}"
+                  input:
+                    q: "name contains 'invoice' and trashed = false"
+                    pageSize: 10
+              uploadApproved:
+                summary: Upload with explicit approval
+                value:
+                  actionId: drive.upload_file
+                  credentials:
+                    clientId: "${GOOGLE_CLIENT_ID}"
+                    clientSecret: "${GOOGLE_CLIENT_SECRET}"
+                    refreshToken: "${GOOGLE_REFRESH_TOKEN}"
+                  approval:
+                    approved: true
+                    note: sandbox upload
+                  idempotencyKey: client-upload-001
+                  input:
+                    name: notes.txt
+                    mimeType: text/plain
+                    encoding: utf-8
+                    content: hello
+      responses:
+        '200':
+          description: Normalized connector execution result (ok true or false)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectorExecutionResult'
+
+components:
+  schemas:
+    OAuthCredentials:
+      type: object
+      additionalProperties: false
+      required: [clientId, clientSecret, refreshToken]
+      properties:
+        clientId: { type: string }
+        clientSecret: { type: string }
+        refreshToken: { type: string }
+        accessToken:
+          type: string
+          description: Optional short-lived access token; refreshed by connector OAuth when missing/expired.
+
+    CredentialsRequest:
+      type: object
+      additionalProperties: false
+      required: [credentials]
+      properties:
+        credentials:
+          $ref: '#/components/schemas/OAuthCredentials'
+
+    Approval:
+      type: object
+      additionalProperties: false
+      required: [approved]
+      properties:
+        approved:
+          type: boolean
+          description: Must be true before write actions call Google.
+        note:
+          type: string
+
+    NormalizedConnectorError:
+      type: object
+      additionalProperties: false
+      required: [code, message, retryClass]
+      properties:
+        code: { type: string }
+        message: { type: string }
+        retryClass:
+          type: string
+          enum: [none, retryable, rate_limited, auth, fatal]
+        httpStatus: { type: integer }
+        requestId: { type: string }
+        provider:
+          type: object
+          additionalProperties: true
+          properties:
+            reason: { type: string }
+            status: { type: string }
+            details: {}
+
+    RateLimitMetadata:
+      type: object
+      additionalProperties: false
+      description: Present when Google returns related rate-limit headers.
+      properties:
+        limit: { type: string }
+        remaining: { type: string }
+        reset: { type: string }
+        retryAfter: { type: string }
+
+    ConnectorAction:
+      type: object
+      additionalProperties: false
+      required: [id, name, description, approvalRequired, status]
+      properties:
+        id:
+          type: string
+          enum:
+            - drive.search_files
+            - drive.list_folder
+            - drive.read_or_export_file
+            - drive.upload_file
+            - drive.share_file
+        name: { type: string }
+        description: { type: string }
+        approvalRequired: { type: boolean }
+        status:
+          type: string
+          enum: [planned, implemented]
+
+    ConnectionTestResult:
+      type: object
+      additionalProperties: false
+      required: [ok, message, checkedAt]
+      properties:
+        ok: { type: boolean }
+        message: { type: string }
+        checkedAt: { type: string, format: date-time }
+        requestId: { type: string }
+        user:
+          type: object
+          additionalProperties: false
+          properties:
+            displayName: { type: string }
+            emailAddress: { type: string }
+            permissionId: { type: string }
+        storageQuota:
+          type: object
+          additionalProperties: false
+          properties:
+            limit: { type: string }
+            usage: { type: string }
+            usageInDrive: { type: string }
+
+    ConnectorExecuteRequest:
+      type: object
+      additionalProperties: false
+      required: [actionId, input, credentials]
+      properties:
+        actionId:
+          type: string
+          enum:
+            - drive.search_files
+            - drive.list_folder
+            - drive.read_or_export_file
+            - drive.upload_file
+            - drive.share_file
+        input:
+          description: Action-specific input. Shape depends on actionId.
+          oneOf:
+            - $ref: '#/components/schemas/SearchFilesInput'
+            - $ref: '#/components/schemas/ListFolderInput'
+            - $ref: '#/components/schemas/ReadOrExportFileInput'
+            - $ref: '#/components/schemas/UploadFileInput'
+            - $ref: '#/components/schemas/ShareFileInput'
+        credentials:
+          $ref: '#/components/schemas/OAuthCredentials'
+        approval:
+          $ref: '#/components/schemas/Approval'
+        idempotencyKey:
+          type: string
+          description: Caller correlation only; Google does not deduplicate with this key.
+
+    ConnectorExecutionResult:
+      type: object
+      additionalProperties: false
+      required: [ok, actionId]
+      properties:
+        ok: { type: boolean }
+        actionId: { type: string }
+        data: {}
+        error:
+          $ref: '#/components/schemas/NormalizedConnectorError'
+        requestId: { type: string }
+
+    DriveFileMetadata:
+      type: object
+      additionalProperties: false
+      required: [id, name]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        mimeType: { type: string }
+        parents:
+          type: array
+          items: { type: string }
+        size: { type: string }
+        modifiedTime: { type: string }
+        createdTime: { type: string }
+        webViewLink: { type: string }
+        trashed: { type: boolean }
+        driveId: { type: string }
+
+    SearchFilesInput:
+      type: object
+      additionalProperties: false
+      properties:
+        q: { type: string }
+        pageSize: { type: integer, minimum: 1, maximum: 1000 }
+        pageToken: { type: string }
+        orderBy: { type: string }
+        spaces: { type: string }
+        corpora:
+          type: string
+          enum: [user, domain, drive, allDrives]
+        includeItemsFromAllDrives: { type: boolean }
+        supportsAllDrives: { type: boolean }
+
+    ListFolderInput:
+      type: object
+      additionalProperties: false
+      required: [folderId]
+      properties:
+        folderId:
+          type: string
+          description: Folder ID or "root"
+        pageSize: { type: integer, minimum: 1, maximum: 1000 }
+        pageToken: { type: string }
+
+    ReadOrExportFileInput:
+      type: object
+      additionalProperties: false
+      required: [fileId]
+      properties:
+        fileId: { type: string }
+        format:
+          type: string
+          description: Export alias for Google Workspace files only
+        maxBytes: { type: integer, minimum: 1 }
+
+    UploadFileInput:
+      type: object
+      additionalProperties: false
+      required: [name, mimeType, content, encoding]
+      properties:
+        name: { type: string }
+        mimeType: { type: string }
+        content:
+          type: string
+          description: File bytes as string interpreted by encoding
+        encoding:
+          type: string
+          enum: [utf-8, base64]
+          description: utf-8 for text; base64 for binary (JSON-safe)
+        parents:
+          type: array
+          maxItems: 1
+          items: { type: string }
+        uploadStrategy:
+          type: string
+          enum: [auto, multipart, resumable]
+
+    ShareFileInput:
+      type: object
+      additionalProperties: false
+      required: [fileId, type, role]
+      properties:
+        fileId: { type: string }
+        type:
+          type: string
+          enum: [user, group, domain, anyone]
+        role:
+          type: string
+          enum: [reader, commenter, writer]
+        emailAddress: { type: string }
+        domain: { type: string }
+        sendNotificationEmail:
+          type: boolean
+          description: |
+            User/group only. If omitted, Google defaults to sending a notification.
+            Explicit false disables it where Google permits.
+        allowPublicShare: { type: boolean }
+        allowDangerousPublicWrite: { type: boolean }
+
+    FileListOutput:
+      type: object
+      additionalProperties: false
+      required: [files]
+      properties:
+        files:
+          type: array
+          items:
+            $ref: '#/components/schemas/DriveFileMetadata'
+        nextPageToken: { type: string }
+        incompleteSearch: { type: boolean }
+        rateLimit:
+          $ref: '#/components/schemas/RateLimitMetadata'
+
+    ListFolderOutput:
+      allOf:
+        - $ref: '#/components/schemas/FileListOutput'
+        - type: object
+          required: [folderId]
+          properties:
+            folderId: { type: string }
+
+    ReadOrExportFileOutput:
+      type: object
+      additionalProperties: false
+      required:
+        - fileId
+        - name
+        - sourceMimeType
+        - delivery
+        - mimeType
+        - encoding
+        - content
+        - sizeBytes
+        - truncated
+        - limit
+      properties:
+        fileId: { type: string }
+        name: { type: string }
+        sourceMimeType: { type: string }
+        delivery:
+          type: string
+          enum: [download, export]
+        mimeType: { type: string }
+        encoding:
+          type: string
+          enum: [utf-8, base64]
+        content: { type: string }
+        sizeBytes: { type: integer }
+        truncated: { type: boolean }
+        exportFormat: { type: string }
+        limit:
+          type: object
+          properties:
+            maxBytes: { type: integer }
+            googleExportLimitBytes: { type: integer }
+        rateLimit:
+          $ref: '#/components/schemas/RateLimitMetadata'
+
+    UploadFileOutput:
+      type: object
+      additionalProperties: false
+      required: [file, uploadStrategy, sizeBytes, idempotency]
+      properties:
+        file:
+          $ref: '#/components/schemas/DriveFileMetadata'
+        uploadStrategy:
+          type: string
+          enum: [multipart, resumable]
+        sizeBytes: { type: integer }
+        idempotency:
+          type: object
+          required: [naturallyIdempotent, warning]
+          properties:
+            key: { type: string }
+            naturallyIdempotent: { type: boolean }
+            warning: { type: string }
+        rateLimit:
+          $ref: '#/components/schemas/RateLimitMetadata'
+
+    ShareFileOutput:
+      type: object
+      additionalProperties: false
+      required: [fileId, permission]
+      properties:
+        fileId: { type: string }
+        permission:
+          type: object
+          required: [id, type, role]
+          properties:
+            id: { type: string }
+            type: { type: string }
+            role: { type: string }
+            emailAddress: { type: string }
+            domain: { type: string }
+            allowFileDiscovery: { type: boolean }
+        notification:
+          type: object
+          properties:
+            sendNotificationEmail: { type: boolean }
+        rateLimit:
+          $ref: '#/components/schemas/RateLimitMetadata'

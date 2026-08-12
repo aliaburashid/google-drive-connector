@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import { parseSearchFilesInput } from "../src/actions/search-files.js";
 import { execute, listActions, manifest } from "../src/connector.js";
 import { ConnectorError } from "../src/errors/normalize.js";
+import { DEFAULT_SEARCH_FIELDS } from "../src/schemas/search-files.js";
 import type { OAuthCredentials } from "../src/types.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -60,6 +61,14 @@ describe("drive.search_files input parsing", () => {
     );
   });
 
+  it("rejects caller-controlled fields (connector-owned field mask)", () => {
+    assert.throws(
+      () => parseSearchFilesInput({ q: "trashed = false", fields: "files(id)" }),
+      (err: unknown) =>
+        err instanceof ConnectorError && err.normalized.code === "invalid_input",
+    );
+  });
+
   it("rejects out-of-range pageSize", () => {
     assert.throws(
       () => parseSearchFilesInput({ pageSize: 0 }),
@@ -83,16 +92,19 @@ describe("drive.search_files via execute()", () => {
       providerResponse: unknown;
     };
 
+    let seenFields: string | null = null;
     const originalFetch = globalThis.fetch;
     globalThis.fetch = mockFetchSequence([
-      () =>
-        new Response(JSON.stringify(fixture.providerResponse), {
+      (url) => {
+        seenFields = url.searchParams.get("fields");
+        return new Response(JSON.stringify(fixture.providerResponse), {
           status: 200,
           headers: {
             "Content-Type": "application/json",
             "x-request-id": "req-sanitized-001",
           },
-        }),
+        });
+      },
     ]);
 
     try {
@@ -105,6 +117,7 @@ describe("drive.search_files via execute()", () => {
       assert.equal(result.ok, true);
       assert.equal(result.actionId, "drive.search_files");
       assert.equal(result.requestId, "req-sanitized-001");
+      assert.equal(seenFields, DEFAULT_SEARCH_FIELDS);
 
       const data = result.data as {
         files: Array<{ id: string; name: string }>;

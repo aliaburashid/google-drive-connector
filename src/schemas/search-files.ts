@@ -1,5 +1,6 @@
 /**
  * JSON Schema + types for drive.search_files.
+ * Field selection is owned by the connector — callers cannot pass `fields`.
  */
 
 export const SEARCH_FILES_ACTION_ID = "drive.search_files" as const;
@@ -48,11 +49,6 @@ export const searchFilesInputSchema = {
     supportsAllDrives: {
       type: "boolean",
       description: "Whether the requesting app supports both My Drives and shared drives.",
-    },
-    fields: {
-      type: "string",
-      description:
-        "Optional Drive fields mask. Defaults to a safe metadata set including nextPageToken.",
     },
   },
 } as const;
@@ -132,7 +128,6 @@ export interface SearchFilesInput {
   corpora?: "user" | "domain" | "drive" | "allDrives";
   includeItemsFromAllDrives?: boolean;
   supportsAllDrives?: boolean;
-  fields?: string;
 }
 
 export interface DriveFileMetadata {

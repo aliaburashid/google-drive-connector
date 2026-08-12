@@ -1,7 +1,7 @@
 {
   "name": "google-drive-connector",
-  "version": "0.5.0",
-  "description": "Builders League Google Drive connector — portable core with OAuth and typed actions",
+  "version": "0.6.0",
+  "description": "Builders League Google Drive connector — portable core with thin MCP adapter and OpenAPI",
   "type": "module",
   "main": "./dist/connector.js",
   "types": "./dist/connector.d.ts",
@@ -9,12 +9,18 @@
     ".": {
       "types": "./dist/connector.d.ts",
       "import": "./dist/connector.js"
+    },
+    "./mcp": {
+      "types": "./dist/mcp/index.d.ts",
+      "import": "./dist/mcp/index.js"
     }
   },
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test tests/*.test.ts",
+    "test:openapi": "tsx --test tests/openapi.test.ts",
+    "test:mcp": "tsx --test tests/mcp-adapter.test.ts",
     "test:connection": "tsx scripts/test-connection.ts",
     "test:search": "tsx scripts/test-search-files.ts",
     "test:list-folder": "tsx scripts/test-list-folder.ts",
@@ -29,12 +35,20 @@
     "google-drive",
     "connector",
     "oauth",
+    "mcp",
+    "openapi",
     "builders-league"
   ],
   "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "zod": "^4.4.3"
+  },
   "devDependencies": {
+    "@apidevtools/swagger-parser": "^12.1.0",
     "@types/node": "^22.13.10",
     "tsx": "^4.19.3",
-    "typescript": "^5.8.2"
+    "typescript": "^5.8.2",
+    "yaml": "^2.9.0"
   }
 }

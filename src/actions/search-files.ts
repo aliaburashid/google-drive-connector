@@ -24,7 +24,6 @@ const ALLOWED_KEYS = [
   "corpora",
   "includeItemsFromAllDrives",
   "supportsAllDrives",
-  "fields",
 ] as const;
 
 const CORPORA = ["user", "domain", "drive", "allDrives"] as const;
@@ -72,9 +71,6 @@ export function parseSearchFilesInput(raw: unknown): SearchFilesInput {
   );
   if (supportsAllDrives !== undefined) parsed.supportsAllDrives = supportsAllDrives;
 
-  const fields = optionalString(raw, "fields", SEARCH_FILES_ACTION_ID);
-  if (fields !== undefined) parsed.fields = fields;
-
   return parsed;
 }
 
@@ -100,7 +96,7 @@ export async function searchFiles(
     ...(input.supportsAllDrives !== undefined
       ? { supportsAllDrives: input.supportsAllDrives }
       : {}),
-    fields: input.fields ?? DEFAULT_SEARCH_FIELDS,
+    fields: DEFAULT_SEARCH_FIELDS,
   });
 
   return {
