@@ -1,6 +1,6 @@
 {
   "name": "google-drive-connector",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Builders League Google Drive connector — portable core with OAuth and typed actions",
   "type": "module",
   "main": "./dist/connector.js",
@@ -16,7 +16,8 @@
     "typecheck": "tsc --noEmit",
     "test": "tsx --test tests/*.test.ts",
     "test:connection": "tsx scripts/test-connection.ts",
-    "test:search": "tsx scripts/test-search-files.ts"
+    "test:search": "tsx scripts/test-search-files.ts",
+    "test:list-folder": "tsx scripts/test-list-folder.ts"
   },
   "engines": {
     "node": ">=20"

@@ -1,6 +1,12 @@
+import { listFolder } from "./actions/list-folder.js";
 import { searchFiles } from "./actions/search-files.js";
 import { DriveClient } from "./client.js";
 import { normalizeError } from "./errors/normalize.js";
+import {
+  LIST_FOLDER_ACTION_ID,
+  listFolderInputSchema,
+  listFolderOutputSchema,
+} from "./schemas/list-folder.js";
 import {
   SEARCH_FILES_ACTION_ID,
   searchFilesInputSchema,
@@ -18,7 +24,7 @@ import type {
 } from "./types.js";
 import { DRIVE_SCOPE, REQUIRED_ACTION_IDS } from "./types.js";
 
-const IMPLEMENTED_ACTIONS = [SEARCH_FILES_ACTION_ID] as const;
+const IMPLEMENTED_ACTIONS = [SEARCH_FILES_ACTION_ID, LIST_FOLDER_ACTION_ID] as const;
 
 const ACTION_CATALOG: Record<
   RequiredActionId,
@@ -52,10 +58,20 @@ const ACTION_CATALOG: Record<
   },
 };
 
+type ActionHandler = (
+  client: DriveClient,
+  input: Record<string, unknown>,
+) => Promise<{ data: unknown; requestId?: string }>;
+
+const ACTION_HANDLERS: Partial<Record<RequiredActionId, ActionHandler>> = {
+  [SEARCH_FILES_ACTION_ID]: searchFiles,
+  [LIST_FOLDER_ACTION_ID]: listFolder,
+};
+
 export const manifest: ConnectorManifest = {
   id: "google-drive",
   name: "Google Drive",
-  version: "0.2.0",
+  version: "0.3.0",
   provider: "Google Drive API v3",
   authType: "oauth2",
   scopes: [DRIVE_SCOPE],
@@ -139,36 +155,37 @@ export async function execute(
     };
   }
 
-  if (request.actionId === SEARCH_FILES_ACTION_ID) {
-    try {
-      const client = new DriveClient({ credentials: request.credentials });
-      const { data, requestId } = await searchFiles(client, request.input);
-      return {
-        ok: true,
-        actionId: request.actionId,
-        data,
-        ...(requestId !== undefined ? { requestId } : {}),
-      };
-    } catch (err) {
-      const error = normalizeError(err);
-      return {
-        ok: false,
-        actionId: request.actionId,
-        error,
-        ...(error.requestId !== undefined ? { requestId: error.requestId } : {}),
-      };
-    }
+  const handler = ACTION_HANDLERS[request.actionId as RequiredActionId];
+  if (!handler) {
+    return {
+      ok: false,
+      actionId: request.actionId,
+      error: {
+        code: "not_implemented",
+        message: `Action ${request.actionId} is planned but not implemented yet.`,
+        retryClass: "fatal",
+      },
+    };
   }
 
-  return {
-    ok: false,
-    actionId: request.actionId,
-    error: {
-      code: "not_implemented",
-      message: `Action ${request.actionId} is planned but not implemented yet.`,
-      retryClass: "fatal",
-    },
-  };
+  try {
+    const client = new DriveClient({ credentials: request.credentials });
+    const { data, requestId } = await handler(client, request.input);
+    return {
+      ok: true,
+      actionId: request.actionId,
+      data,
+      ...(requestId !== undefined ? { requestId } : {}),
+    };
+  } catch (err) {
+    const error = normalizeError(err);
+    return {
+      ok: false,
+      actionId: request.actionId,
+      error,
+      ...(error.requestId !== undefined ? { requestId: error.requestId } : {}),
+    };
+  }
 }
 
 export const googleDriveConnector: DooConnector = {
@@ -182,6 +199,11 @@ export default googleDriveConnector;
 
 export { credentialsFromEnv, getAccessToken, refreshAccessToken } from "./auth/oauth.js";
 export { ConnectorError, normalizeError } from "./errors/normalize.js";
+export {
+  LIST_FOLDER_ACTION_ID,
+  listFolderInputSchema,
+  listFolderOutputSchema,
+} from "./schemas/list-folder.js";
 export {
   SEARCH_FILES_ACTION_ID,
   searchFilesInputSchema,

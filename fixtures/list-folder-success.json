@@ -1,0 +1,33 @@
+{
+  "description": "Sanitized Drive files.list success response for drive.list_folder (no secrets).",
+  "request": {
+    "actionId": "drive.list_folder",
+    "input": {
+      "folderId": "folder_sanitized_projects",
+      "pageSize": 2
+    }
+  },
+  "providerResponse": {
+    "kind": "drive#fileList",
+    "nextPageToken": "sanitized-folder-next-page",
+    "incompleteSearch": false,
+    "files": [
+      {
+        "id": "file_sanitized_notes",
+        "name": "Notes.doc",
+        "mimeType": "application/vnd.google-apps.document",
+        "parents": ["folder_sanitized_projects"],
+        "modifiedTime": "2026-04-02T10:00:00.000Z",
+        "trashed": false
+      },
+      {
+        "id": "folder_sanitized_archive",
+        "name": "Archive",
+        "mimeType": "application/vnd.google-apps.folder",
+        "parents": ["folder_sanitized_projects"],
+        "modifiedTime": "2026-03-15T09:00:00.000Z",
+        "trashed": false
+      }
+    ]
+  }
+}

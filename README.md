@@ -2,7 +2,7 @@
 
 Builders League (Cohort 01) — portable Google Drive connector for Alia Burashed.
 
-**Status:** Milestone 3 — `testConnection` + `drive.search_files`.  
+**Status:** Milestone 4 — `testConnection` + `drive.search_files` + `drive.list_folder`.  
 Remaining actions, MCP adapter, and OpenAPI are not implemented yet.
 
 ## What works now
@@ -12,6 +12,7 @@ Remaining actions, MCP adapter, and OpenAPI are not implemented yet.
 - OAuth refresh-token helper
 - `testConnection()` via Drive `about.get` (no side effects)
 - `drive.search_files` through `execute()` with pagination and normalized errors
+- `drive.list_folder` through `execute()` (direct children, `"root"` supported, trash excluded)
 
 ## Setup
 
@@ -41,6 +42,8 @@ npm test
 npm run test:connection
 npm run test:search
 npm run test:search -- --q="name contains 'report' and trashed = false" --pageSize=5
+npm run test:list-folder
+npm run test:list-folder -- --folderId=root --pageSize=5
 ```
 
 Sandbox scripts print redacted results and never log client secrets or refresh tokens.
@@ -50,7 +53,7 @@ Sandbox scripts print redacted results and never log client secrets or refresh t
 | Action | Status |
 |---|---|
 | `drive.search_files` | Implemented |
-| `drive.list_folder` | Planned |
+| `drive.list_folder` | Implemented |
 | `drive.read_or_export_file` | Planned |
 | `drive.upload_file` | Planned |
 | `drive.share_file` | Planned |

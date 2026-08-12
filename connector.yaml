@@ -1,6 +1,6 @@
 id: google-drive
 name: Google Drive
-version: 0.2.0
+version: 0.3.0
 provider: Google Drive API v3
 difficulty: Advanced
 category: Productivity
@@ -34,6 +34,7 @@ actions:
     - drive.share_file
   implemented:
     - drive.search_files
+    - drive.list_folder
 
 risks:
   - Restricted OAuth scope https://www.googleapis.com/auth/drive is required for broad search/list without Google Picker; public apps need Google verification.

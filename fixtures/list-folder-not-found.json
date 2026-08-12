@@ -1,0 +1,24 @@
+{
+  "description": "Sanitized Drive API error when the folder does not exist or is inaccessible.",
+  "request": {
+    "actionId": "drive.list_folder",
+    "input": {
+      "folderId": "folder_does_not_exist"
+    }
+  },
+  "providerHttpStatus": 404,
+  "providerResponse": {
+    "error": {
+      "code": 404,
+      "message": "File not found: folder_does_not_exist.",
+      "status": "NOT_FOUND",
+      "errors": [
+        {
+          "domain": "global",
+          "reason": "notFound",
+          "message": "File not found: folder_does_not_exist."
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "description": "Sanitized listing of My Drive root (folderId=root).",
+  "request": {
+    "actionId": "drive.list_folder",
+    "input": {
+      "folderId": "root",
+      "pageSize": 2
+    }
+  },
+  "providerResponse": {
+    "kind": "drive#fileList",
+    "incompleteSearch": false,
+    "files": [
+      {
+        "id": "folder_sanitized_alia",
+        "name": "Alia",
+        "mimeType": "application/vnd.google-apps.folder",
+        "parents": ["0ArootSanitized"],
+        "modifiedTime": "2026-07-25T19:44:52.503Z",
+        "trashed": false
+      },
+      {
+        "id": "file_sanitized_photo",
+        "name": "DSCF5979.jpg",
+        "mimeType": "image/jpeg",
+        "parents": ["0ArootSanitized"],
+        "modifiedTime": "2026-07-25T18:57:41.000Z",
+        "trashed": false
+      }
+    ]
+  }
+}

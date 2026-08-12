@@ -1,0 +1,24 @@
+{
+  "description": "Sanitized second page for drive.list_folder pagination.",
+  "request": {
+    "actionId": "drive.list_folder",
+    "input": {
+      "folderId": "folder_sanitized_projects",
+      "pageSize": 2,
+      "pageToken": "sanitized-folder-next-page"
+    }
+  },
+  "providerResponse": {
+    "kind": "drive#fileList",
+    "files": [
+      {
+        "id": "file_sanitized_budget",
+        "name": "Budget.xlsx",
+        "mimeType": "application/vnd.google-apps.spreadsheet",
+        "parents": ["folder_sanitized_projects"],
+        "modifiedTime": "2026-02-01T12:00:00.000Z",
+        "trashed": false
+      }
+    ]
+  }
+}

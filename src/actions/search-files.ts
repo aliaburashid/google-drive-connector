@@ -2,7 +2,6 @@ import type { DriveClient } from "../client.js";
 import {
   DEFAULT_SEARCH_FIELDS,
   SEARCH_FILES_ACTION_ID,
-  type DriveFileMetadata,
   type SearchFilesInput,
   type SearchFilesOutput,
 } from "../schemas/search-files.js";
@@ -14,6 +13,7 @@ import {
   optionalString,
   rejectUnknownKeys,
 } from "../schemas/validate.js";
+import { mapFileListResult } from "./file-list-result.js";
 
 const ALLOWED_KEYS = [
   "q",
@@ -103,27 +103,8 @@ export async function searchFiles(
     fields: input.fields ?? DEFAULT_SEARCH_FIELDS,
   });
 
-  const files: DriveFileMetadata[] = (data.files ?? []).map((file) => ({
-    ...file,
-    id: file.id ?? "",
-    name: file.name ?? "",
-  }));
-
-  const output: SearchFilesOutput = {
-    files,
-    ...(data.nextPageToken !== undefined && data.nextPageToken !== ""
-      ? { nextPageToken: data.nextPageToken }
-      : {}),
-    ...(data.incompleteSearch !== undefined
-      ? { incompleteSearch: data.incompleteSearch }
-      : {}),
-    ...(rateLimit !== undefined && Object.keys(rateLimit).length > 0
-      ? { rateLimit }
-      : {}),
-  };
-
   return {
-    data: output,
+    data: mapFileListResult(data, rateLimit),
     ...(requestId !== undefined ? { requestId } : {}),
   };
 }

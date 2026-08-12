@@ -49,6 +49,36 @@ export function optionalString(
   return input[key];
 }
 
+export function requiredString(
+  input: Record<string, unknown>,
+  key: string,
+  actionId: string,
+): string {
+  if (!(key in input) || input[key] === undefined) {
+    throw new ConnectorError({
+      code: "invalid_input",
+      message: `Action ${actionId}: "${key}" is required`,
+      retryClass: "fatal",
+    });
+  }
+  if (typeof input[key] !== "string") {
+    throw new ConnectorError({
+      code: "invalid_input",
+      message: `Action ${actionId}: "${key}" must be a string`,
+      retryClass: "fatal",
+    });
+  }
+  const value = input[key].trim();
+  if (value.length === 0) {
+    throw new ConnectorError({
+      code: "invalid_input",
+      message: `Action ${actionId}: "${key}" must not be empty`,
+      retryClass: "fatal",
+    });
+  }
+  return value;
+}
+
 export function optionalBoolean(
   input: Record<string, unknown>,
   key: string,
