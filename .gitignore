@@ -11,3 +11,5 @@ token.json
 .idea/
 .vscode/
 *.zip
+
+.cursor/
