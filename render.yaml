@@ -1,26 +1,44 @@
-# Render Blueprint (optional). Secrets are NOT stored here — set them in the Render dashboard.
-# Docs: https://render.com/docs/blueprint-spec
+# Tells Render how to host this app as a public website (HTTPS).
+# Real secrets are NOT written here — you type them in the Render dashboard.
 
+# List of services Render should create from this file.
 services:
+  # "web" means a public HTTP service with an https://…onrender.com URL.
   - type: web
+    # Name shown in the Render dashboard.
     name: google-drive-mcp
+    # Run with Node.js (not Docker or Python).
     runtime: node
+    # Use Render's free plan.
     plan: free
+    # Which Render region runs the machine (closest region is fine).
     region: oregon
+    # Which Git branch Render builds from (milestone-8 until 8B is merged).
     branch: milestone-8
+    # Runs before start: install packages, then compile TypeScript → dist/.
     buildCommand: npm ci && npm run build
+    # Runs after build: starts the MCP HTTP server (see package.json "start").
     startCommand: npm start
+    # Render calls this path to check the app is alive.
     healthCheckPath: /health
+    # Environment variables the running app can read.
     envVars:
+      # Force Node 20 so it matches package.json engines.
       - key: NODE_VERSION
         value: "20"
+      # "production" makes our code bind to 0.0.0.0 (public) instead of localhost.
       - key: NODE_ENV
         value: production
+      # Google OAuth client id — value left empty here; set it in Render UI.
       - key: GOOGLE_CLIENT_ID
+        # sync:false = "do not store the secret in Git; fill it in the dashboard".
         sync: false
+      # Google OAuth client secret — set in Render UI only.
       - key: GOOGLE_CLIENT_SECRET
         sync: false
+      # Long-lived refresh token — set in Render UI only (no browser login per request).
       - key: GOOGLE_REFRESH_TOKEN
         sync: false
+      # Public base URL, e.g. https://google-drive-mcp.onrender.com (set after first deploy).
       - key: MCP_PUBLIC_URL
         sync: false
