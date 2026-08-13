@@ -105,7 +105,7 @@ const ACTION_HANDLERS: Partial<Record<RequiredActionId, ActionHandler>> = {
 export const manifest: ConnectorManifest = {
   id: "google-drive",
   name: "Google Drive",
-  version: "0.6.0",
+  version: "1.0.0",
   provider: "Google Drive API v3",
   authType: "oauth2",
   scopes: [DRIVE_SCOPE],

@@ -2,7 +2,7 @@ import { ConnectorError } from "../errors/normalize.js";
 
 /**
  * Lightweight runtime checks against our JSON Schema-shaped definitions.
- * Enough for Milestone 3 without pulling a full validator dependency.
+ * Avoids pulling a full JSON Schema validator dependency.
  */
 export function assertObjectInput(
   input: unknown,

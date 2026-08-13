@@ -1,6 +1,6 @@
 {
   "name": "google-drive-connector",
-  "version": "0.6.0",
+  "version": "1.0.0",
   "description": "Builders League Google Drive connector — portable core with thin MCP adapter and OpenAPI",
   "type": "module",
   "main": "./dist/connector.js",

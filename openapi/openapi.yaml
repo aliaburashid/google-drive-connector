@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Google Drive Connector
-  version: 0.6.0
+  version: 1.0.0
   summary: Portable Doo/Builders League Google Drive connector contract
   description: |
     Documents the EXISTING connector core contract. OpenAPI does not invent new
@@ -28,10 +28,13 @@ info:
 
 servers:
   - url: '{connectorBaseUrl}'
-    description: Local or future hosted connector base URL (not deployed in Milestone 7)
+    description: Local or Render-hosted connector base URL (HTTPS in production)
     variables:
       connectorBaseUrl:
-        default: http://localhost:8787
+        default: https://google-drive-mcp-hhd6.onrender.com
+        enum:
+          - https://google-drive-mcp-hhd6.onrender.com
+          - http://127.0.0.1:8787
 
 tags:
   - name: Connector
@@ -44,7 +47,7 @@ paths:
     get:
       tags: [Connector]
       operationId: health
-      summary: Liveness probe for a future host (not deployed yet)
+      summary: Liveness probe for the HTTP MCP host
       responses:
         '200':
           description: Service is up
