@@ -26,7 +26,15 @@ const FAKE_CREDENTIALS: OAuthCredentials = {
   refreshToken: "test-refresh-token",
 };
 
-function readMcpSources(): string {
+/** Adapter/host library sources — excludes process entry (`http-entry.ts`). */
+function readMcpLibrarySources(): string {
+  return readdirSync(MCP_DIR)
+    .filter((name) => name.endsWith(".ts") && name !== "http-entry.ts")
+    .map((name) => readFileSync(join(MCP_DIR, name), "utf8"))
+    .join("\n");
+}
+
+function readAllMcpSources(): string {
   return readdirSync(MCP_DIR)
     .filter((name) => name.endsWith(".ts"))
     .map((name) => readFileSync(join(MCP_DIR, name), "utf8"))
@@ -287,7 +295,8 @@ describe("thin MCP adapter", () => {
   });
 
   it("does not import DriveClient, OAuth helpers, or Google provider modules", () => {
-    const source = readMcpSources();
+    // Process entry may call credentialsFromEnv(); adapter/HTTP host must not.
+    const source = readMcpLibrarySources();
     const importLines = source
       .split("\n")
       .map((line) => line.trim())
@@ -323,7 +332,7 @@ describe("thin MCP adapter", () => {
   });
 
   it("reports MCP import surface for review", () => {
-    const imports = [...readMcpSources().matchAll(/from\s+["']([^"']+)["']/g)].map(
+    const imports = [...readAllMcpSources().matchAll(/from\s+["']([^"']+)["']/g)].map(
       (match) => match[1],
     );
     const unique = [...new Set(imports)].sort();
@@ -337,10 +346,19 @@ describe("thin MCP adapter", () => {
       "../schemas/upload-file.js",
       "../types.js",
       "./adapter.js",
+      "./http.js",
       "./json-schema-to-zod.js",
+      "./listen-env.js",
       "./server.js",
       "./tools.js",
+      "@modelcontextprotocol/sdk/server/express.js",
       "@modelcontextprotocol/sdk/server/mcp.js",
+      "@modelcontextprotocol/sdk/server/streamableHttp.js",
+      "@modelcontextprotocol/sdk/shared/transport.js",
+      "express",
+      "node:fs",
+      "node:http",
+      "node:path",
       "zod",
     ]);
   });
