@@ -77,8 +77,10 @@ Render hosts a **Node Web Service**. Render provides public **HTTPS**. Secrets s
 
 | Step | Command |
 |---|---|
-| **Build** | `npm ci && npm run build` |
+| **Build** | `npm ci --include=dev && npm run build` |
 | **Start** | `npm start` → `node dist/mcp/http-entry.js` |
+
+Use `--include=dev` on the build so TypeScript is installed even when `NODE_ENV=production` (otherwise `tsc` is missing and the build exits with status 2).
 
 The process binds to Render’s `PORT` and `0.0.0.0` in production. Locally it still defaults to `127.0.0.1:8787`.
 

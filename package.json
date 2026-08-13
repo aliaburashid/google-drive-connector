@@ -19,6 +19,7 @@
     "build": "tsc",
     "typecheck": "tsc --noEmit",
     "start": "node dist/mcp/http-entry.js",
+    "render:build": "npm ci --include=dev && npm run build",
     "start:mcp-http": "tsx src/mcp/http-entry.ts",
     "test": "tsx --test tests/*.test.ts",
     "test:openapi": "tsx --test tests/openapi.test.ts",

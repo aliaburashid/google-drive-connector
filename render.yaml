@@ -15,8 +15,9 @@ services:
     region: oregon
     # Which Git branch Render builds from (milestone-8 until 8B is merged).
     branch: milestone-8
-    # Runs before start: install packages, then compile TypeScript → dist/.
-    buildCommand: npm ci && npm run build
+    # Installs prod + dev deps (TypeScript is a devDependency), then compiles to dist/.
+    # --include=dev is required because NODE_ENV=production would otherwise skip tsc.
+    buildCommand: npm ci --include=dev && npm run build
     # Runs after build: starts the MCP HTTP server (see package.json "start").
     startCommand: npm start
     # Render calls this path to check the app is alive.
