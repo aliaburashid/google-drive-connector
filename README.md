@@ -1,8 +1,8 @@
 # Google Drive Connector
 
-Builders League (Cohort 01) — portable Google Drive connector for Alia Burashed.
+A portable Google Drive connector built for Builders League Cohort 01. It provides five Google Drive actions through a reusable connector core, a thin MCP adapter, and a remotely accessible MCP endpoint using Streamable HTTP.
 
-**Status:** Production-ready **v1.0.0** connector with remote HTTPS Streamable HTTP MCP on Render.
+**Status:** Release-ready v1.0.0 Google Drive connector with a validated HTTPS Streamable HTTP MCP deployment on Render.
 
 ## Architecture
 
@@ -69,7 +69,7 @@ npm run test:mcp-http
 
 ## Deployed MCP (Render)
 
-Public HTTPS service (example):
+Validated public HTTPS deployment:
 
 - Base: `https://google-drive-mcp-hhd6.onrender.com`
 - Health: `https://google-drive-mcp-hhd6.onrender.com/health`
